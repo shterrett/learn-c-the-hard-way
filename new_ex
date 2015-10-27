@@ -1,0 +1,33 @@
+#!/Users/stuart/.rbenv/shims/ruby
+
+makefile_contents = <<-MAKEFILE
+CFLAGS=-Wall -g
+
+all:
+\tcc $(CFLAGS) $(EXECUTABLE).c -o ../bin/$(EXECUTABLE)
+
+clean:
+\trm -f ../bin/$(EXECUTABLE)
+MAKEFILE
+
+def makefile_header(exercise_name)
+  "EXECUTABLE=#{exercise_name}"
+end
+
+exercise_number = ARGV.first
+unless exercise_number =~ /\d\d/
+  puts "invalid exercise number"
+  exit(1)
+end
+
+exercise_name = "ex#{exercise_number}"
+
+Dir.mkdir("ex#{exercise_number}")
+File.open("#{exercise_name}/Makefile", 'w') do |f|
+  f.puts makefile_header(exercise_name)
+  f.puts makefile_contents
+end
+File.open("#{exercise_name}/#{exercise_name}.c", 'w') {}
+
+puts "Exercise scaffold created"
+exit(0)

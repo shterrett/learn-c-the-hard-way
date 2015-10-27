@@ -1,8 +1,5 @@
-# Ignore all
-*
-
-# Unignore all with extensions
-!*.*
+# Compiled Executables
+bin
 
 # Object files
 *.o
