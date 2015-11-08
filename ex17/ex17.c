@@ -177,6 +177,42 @@ void Database_list(struct Connection *conn)
   }
 }
 
+void Database_find(struct Connection *conn, const char *field, const char *query)
+{
+  struct Address *found;
+  int matched = 0;
+  int i = 0;
+  while (!matched && i < MAX_ROWS) {
+    struct Address curr = conn->db->rows[i];
+    char *query_result = "";
+    if (strncmp(field, "name", MAX_DATA) == 0) {
+      query_result = curr.name;
+    } else if (strncmp(field, "email", MAX_DATA) == 0) {
+      query_result = curr.email;
+    } else {
+      die("Field not present", conn);
+    }
+
+    if (strncmp(query, query_result, MAX_DATA) == 0) {
+      found = &curr;
+      matched = 1;
+    }
+    i++;
+  }
+
+  if (matched) {
+    Address_print(found);
+  } else {
+    printf("No record matching %s = %s\n", field, query);
+  }
+}
+
+void guard_row_count(int row_id, struct Connection *conn) {
+  if (row_id >= MAX_ROWS) {
+    die("There are not that many records", conn);
+  }
+}
+
 int main(int argc, char *argv[])
 {
   if (argc < 3) {
@@ -191,9 +227,6 @@ int main(int argc, char *argv[])
   if (argc > 3) {
     row_id = atoi(argv[3]);
   }
-  if (row_id >= MAX_ROWS) {
-    die("There are not that many records", conn);
-  }
 
   switch (action) {
     case 'c': {
@@ -205,13 +238,14 @@ int main(int argc, char *argv[])
       if (argc != 4) {
         die("Need an row_id to get", conn);
       }
+      guard_row_count(row_id, conn);
       Database_get(conn, row_id);
       break;
     case 's':
       if (argc != 6) {
         die("Need row_id, name, email to set", conn);
       }
-
+      guard_row_count(row_id, conn);
       Database_set(conn, row_id, argv[4], argv[5]);
       Database_write(conn);
       break;
@@ -226,6 +260,15 @@ int main(int argc, char *argv[])
     case 'l':
       Database_list(conn);
       break;
+    case 'f': {
+      if (argc != 5) {
+        die("Need field and query", conn);
+      }
+      char *field = argv[3];
+      char *query = argv[4];
+      Database_find(conn, field, query);
+      break;
+    }
     default:
       die("Invalid action: c=create, g=get, s=set, d=delete, l=list", conn);
   }
