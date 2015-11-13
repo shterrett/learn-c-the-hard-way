@@ -4,20 +4,30 @@
 #include <errno.h>
 #include <string.h>
 
-#define MAX_DATA 512
-#define MAX_ROWS 100
-
 struct Address {
   int row_id;
   int set;
-  char name[MAX_DATA];
-  char email[MAX_DATA];
+  int name_len;
+  int email_len;
+  char *name;
+  char *email;
 };
+
+struct Address new_address(int row_id) {
+  struct Address addr = { .row_id = row_id,
+                          .set = 0,
+                          .name_len = 1,
+                          .email_len = 1,
+                          .name = "\0",
+                          .email = "\0"
+                        };
+  return addr;
+}
 
 struct Database {
   int max_data;
   int max_rows;
-  struct Address rows[MAX_ROWS];
+  struct Address *rows;
 };
 
 struct Connection {
@@ -45,8 +55,29 @@ void Address_print(struct Address *addr)
 
 void Database_load(struct Connection *conn)
 {
-  int rc = fread(conn->db, sizeof(struct Database), 1, conn->file);
-  if (rc != 1) {
+  int rc = fread(&conn->db->max_data, sizeof(int), 1, conn->file);
+  rc += fread(&conn->db->max_rows, sizeof(int), 1, conn->file);
+
+  if (rc != 2) {
+    die("Failed to load database config", conn);
+  }
+
+  conn->db->rows = malloc(conn->db->max_rows * sizeof(struct Address));
+  for(int i = 0; i < conn->db->max_rows; i++) {
+    struct Address *row = &conn->db->rows[i];
+    rc += fread(&row->row_id, sizeof(int), 1, conn->file);
+    rc += fread(&row->set, sizeof(int), 1, conn->file);
+    rc += fread(&row->name_len, sizeof(int), 1, conn->file);
+    rc += fread(&row->email_len, sizeof(int), 1, conn->file);
+
+    row->name = malloc(conn->db->max_data);
+    row->email = malloc(conn->db->max_data);
+
+    rc += fread(row->name, row->name_len, 1, conn->file);
+    rc += fread(row->email, row->email_len, 1, conn->file);
+  }
+
+  if (rc != 2 + 6 * conn->db->max_rows) {
     die("Failed to load database", conn);
   }
 }
@@ -98,8 +129,22 @@ void Database_write(struct Connection *conn)
 {
   rewind(conn->file);
 
-  int rc = fwrite(conn->db, sizeof(struct Database), 1, conn->file);
-  if (rc != 1) {
+  int rc = fwrite(&conn->db->max_data, sizeof(int), 1, conn->file);
+  rc += fwrite(&conn->db->max_rows, sizeof(int), 1, conn->file);
+
+  // write each address in the rows
+  struct Address addr;
+  for (int i = 0; i < conn->db->max_rows; i++) {
+    addr = conn->db->rows[i];
+    rc += fwrite(&addr.row_id, sizeof(int), 1, conn->file);
+    rc += fwrite (&addr.set, sizeof(int), 1, conn->file);
+    rc += fwrite(&addr.name_len, sizeof(int), 1, conn->file);
+    rc += fwrite(&addr.email_len, sizeof(int), 1, conn->file);
+    rc += fwrite(addr.name, addr.name_len, 1, conn->file);
+    rc += fwrite(addr.email, addr.email_len, 1, conn->file);
+  }
+
+  if (rc != (6 * conn->db->max_rows + 2)) {
     die("Failed to write database", conn);
   }
 
@@ -109,18 +154,15 @@ void Database_write(struct Connection *conn)
   }
 }
 
-void Database_create(struct Connection *conn)
+void Database_create(struct Connection *conn, int max_rows, int max_data)
 {
-  int i = 0;
+  conn->db->max_rows = max_rows;
+  conn->db->max_data = max_data;
+  conn->db->rows = malloc(max_rows * sizeof(struct Address));
 
-  for (i = 0; i < MAX_ROWS; i++) {
-    // make a prototype and initialize it
-    struct Address addr = {
-      .row_id = i,
-      .set = 0,
-    };
-    // then assign it
-    conn->db->rows[i] = addr;
+  int i = 0;
+  for (i = 0; i < max_rows; i++) {
+    conn->db->rows[i] = new_address(i);
   }
 }
 
@@ -136,12 +178,29 @@ void Database_set(struct Connection *conn,
   }
 
   addr->set = 1;
-  char *res = strncpy(addr->name, name, MAX_DATA);
+
+  int name_len = strlen(name);
+  int email_len = strlen(email);
+
+  if (name_len > conn->db->max_data ||
+      email_len > conn->db->max_data
+     ) {
+    die("Exceeded data length limit", conn);
+  }
+
+  free(addr->name);
+  free(addr->email);
+  addr->name_len = name_len;
+  addr->name = malloc(name_len);
+  addr->email_len = email_len;
+  addr->email = malloc(email_len);
+
+  char *res = strncpy(addr->name, name, name_len);
   if (!res) {
     die("Name copy failed", conn);
   }
 
-  res = strncpy(addr->email, email, MAX_DATA);
+  res = strncpy(addr->email, email, email_len);
   if (!res) {
     die("Email copy failed", conn);
   }
@@ -160,15 +219,18 @@ void Database_get(struct Connection *conn, int row_id)
 
 void Database_delete(struct Connection *conn, int row_id)
 {
-  struct Address addr = { .row_id = row_id, .set = 0 };
-  conn->db->rows[row_id] = addr;
+  struct Address curr = conn->db->rows[row_id];
+  free(curr.email);
+  free(curr.name);
+
+  conn->db->rows[row_id] = new_address(row_id);
 }
 
 void Database_list(struct Connection *conn)
 {
   struct Database *db = conn->db;
 
-  for (int i = 0; i < MAX_ROWS; i++) {
+  for (int i = 0; i < conn->db->max_rows; i++) {
     struct Address *cur = &db->rows[i];
 
     if (cur->set) {
@@ -182,18 +244,18 @@ void Database_find(struct Connection *conn, const char *field, const char *query
   struct Address *found;
   int matched = 0;
   int i = 0;
-  while (!matched && i < MAX_ROWS) {
+  while (!matched && i < conn->db->max_rows) {
     struct Address curr = conn->db->rows[i];
     char *query_result = "";
-    if (strncmp(field, "name", MAX_DATA) == 0) {
+    if (strncmp(field, "name", conn->db->max_data) == 0) {
       query_result = curr.name;
-    } else if (strncmp(field, "email", MAX_DATA) == 0) {
+    } else if (strncmp(field, "email", conn->db->max_data) == 0) {
       query_result = curr.email;
     } else {
       die("Field not present", conn);
     }
 
-    if (strncmp(query, query_result, MAX_DATA) == 0) {
+    if (strncmp(query, query_result, conn->db->max_data) == 0) {
       found = &curr;
       matched = 1;
     }
@@ -208,7 +270,7 @@ void Database_find(struct Connection *conn, const char *field, const char *query
 }
 
 void guard_row_count(int row_id, struct Connection *conn) {
-  if (row_id >= MAX_ROWS) {
+  if (row_id >= conn->db->max_rows) {
     die("There are not that many records", conn);
   }
 }
@@ -230,7 +292,12 @@ int main(int argc, char *argv[])
 
   switch (action) {
     case 'c': {
-      Database_create(conn);
+      if (argc != 5) {
+        die("Must provide max_rows and max_data", conn);
+      }
+      int max_rows = atoi(argv[3]);
+      int max_data = atoi(argv[4]);
+      Database_create(conn, max_rows, max_data);
       Database_write(conn);
       break;
     }
