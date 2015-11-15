@@ -14,17 +14,18 @@
 
 #define clean_errno() (errno == 0 ? "None" : strerror(errno))
 
-#define log_err(M, ...) fprintf(stderr,\
-        "[ERROR] (%s:%d: errno: %s) " M "\n", __FILE__, __LINE__,\
-        clean_errno(), ##__VA_ARGS__)
+#define log_message(T, M, ...) fprintf(stderr,\
+        "%s (%s in %s:%d: errno: %s) " M "\n",\
+        T, __func__, __FILE__, __LINE__, clean_errno(), ##__VA_ARGS__)
 
-#define log_warn(M, ...) fprintf(stderr,\
-        "[WARN] (%s:%d: errno: %s) " M "\n", __FILE__, __LINE__,\
-        clean_errno(), ##__VA_ARGS__)
+#define log_err(M, ...)\
+        log_message("[ERROR]", M, ##__VA_ARGS__)
 
-#define log_info(M, ...) fprintf(stderr,\
-        "[INFO] (%s:%d: errno: %s) " M "\n", __FILE__, __LINE__,\
-        clean_errno(), ##__VA_ARGS__)
+#define log_warn(M, ...)\
+        log_message("[WARN]", M, ##__VA_ARGS__)
+
+#define log_info(M, ...)\
+        log_message("[INFO]", M, ##__VA_ARGS__)
 
 #define check(A, M, ...) if (!(A)) {\
   log_err(M, ##__VA_ARGS__); errno=0; goto error; }
