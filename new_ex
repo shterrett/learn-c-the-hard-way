@@ -1,4 +1,5 @@
 #!/Users/stuart/.rbenv/shims/ruby
+require 'fileutils'
 
 makefile_contents = <<-MAKEFILE
 CFLAGS=-Wall -g
@@ -28,6 +29,7 @@ File.open("#{exercise_name}/Makefile", 'w') do |f|
   f.puts makefile_contents
 end
 File.open("#{exercise_name}/#{exercise_name}.c", 'w') {}
+FileUtils.cp("./dbg.h", "#{exercise_name}/")
 
 puts "Exercise scaffold created"
 exit(0)
