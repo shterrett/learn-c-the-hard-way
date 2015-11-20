@@ -19,7 +19,7 @@ const char *EYE_COLOR_NAMES[] = {
 
 typedef struct Person {
   int age;
-  char first_name[MAX_DATA];
+  char *first_name;
   char last_name[MAX_DATA];
   EyeColor eyes;
   float income;
@@ -42,16 +42,18 @@ int main(int argc, char *argv[])
   printf("Welcome to the NSA data entry portal!\n");
 
   printf("What's your First Name? ");
-  in = fgets(you.first_name, MAX_DATA - 1, stdin);
-  check(in != NULL, "Failed to read first name.");
+  scanf("%ms", &you.first_name);
+  check(you.first_name != NULL, "Failed to read first name.");
 
   printf("What's your last name? ");
   in = fgets(you.last_name, MAX_DATA - 1, stdin);
   check(in != NULL, "Failed to read last name.");
 
   printf("How old are you? ");
-  int rc = fscanf(stdin, "%d", &you.age);
-  check(rc > 0, "You have to enter a number");
+  char *age;
+  fgets(age, MAX_DATA - 1, stdin);
+  you.age = atoi(age);
+  check(you.age > 0, "You have to enter a number");
 
   printf("What color are your eyes?\n");
   for (i = 0; i <= OTHER_EYES; i++)
@@ -61,6 +63,7 @@ int main(int argc, char *argv[])
   printf("> ");
 
   int eyes = -1;
+  int rc;
   rc = fscanf(stdin, "%d", &eyes);
   check(rc > 0, "You have to enter a number.");
 
@@ -68,14 +71,14 @@ int main(int argc, char *argv[])
   check(you.eyes <= OTHER_EYES && you.eyes >= 0, "Eyes not included in the list");
 
   printf("How much do you make per hour? ");
-  rc = fscanf(stdin, "%f", &you.income);
+  rc = scanf("%f", &you.income);
   check(rc > 0, "Enter a floating point number.");
 
   terrorism_probability(you.terrorist);
 
   printf("---------- RESULTS ----------\n");
-  printf("First Name: %s", you.first_name);
-  printf("Last Name: %s", you.last_name);
+  printf("First Name: %s\n", you.first_name);
+  printf("Last Name: %s\n", you.last_name);
   printf("Age: %d\n", you.age);
   printf("Eye color: %s\n", EYE_COLOR_NAMES[you.eyes]);
   printf("Income: %.2f\n", you.income);
