@@ -87,6 +87,45 @@ error:
   return -1;
 }
 
+void new_print(const char *fmt, ...)
+{
+  va_list argp;
+  va_start(argp, fmt);
+  int newline = 0;
+
+  for (int i = 0; fmt[i] != '\0'; i++) {
+    if (!(fmt[i] == '%')) {
+      fputc(fmt[i], stdout);
+    } else if (fmt[i] == '%') {
+      i++;
+      switch (fmt[i]) {
+        case '\0':
+          sentinel("Invalid format, ended with %%");
+          break;
+        case 'd': {
+          printf("%d", va_arg(argp, int));
+          break;
+        }
+        case 'c':
+          putc(va_arg(argp, int), stdout);
+          break;
+        case 's': {
+          fputs(va_arg(argp, char*), stdout);
+          newline++;
+          break;
+        }
+      }
+    }
+  }
+
+  if (!newline) {
+    fputc('\n', stdout);
+  }
+
+error:
+  return;
+}
+
 int main(int arg, char *argv[])
 {
   char *first_name = NULL;
@@ -109,11 +148,11 @@ int main(int arg, char *argv[])
   printf("How old are you? ");
   rc = read_scan("%d", &age);
 
-  printf("---------- Results ----------\n");
-  printf("First Name: %s", first_name);
-  printf("Initital: %c\n", initial);
-  printf("Last Name: %s", last_name);
-  printf("Age: %d\n", age);
+  new_print("---------- Results ----------");
+  new_print("First Name: %s", first_name);
+  new_print("Initital: %c", initial);
+  new_print("Last Name: %s", last_name);
+  new_print("Age: %d", age);
 
   free(first_name);
   free(last_name);
