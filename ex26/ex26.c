@@ -4,10 +4,12 @@
 
 #define MAX_DATA 512
 
-void print_match(int line_no, char *file_name, char *line)
+void print_match(int line_no, char *file_name, char *line, int match_count)
 {
-  printf("%s: %d\n", file_name, line_no);
-  printf("%s\n", line);
+  if (match_count <= 1) {
+    printf("\e[33m1m%s\n\e[0m", file_name);
+  }
+  printf("  \e[33m%d:\e[0m %s", line_no, line);
 }
 
 void strip_newline(char *str)
@@ -20,18 +22,25 @@ void search_file(char *file_name, char *test)
 {
   FILE *file = fopen(file_name, "r");
   check(file, "File not found: %s", file_name);
-  char *current_line = malloc(MAX_DATA);
+
+  char *current_line = malloc(MAX_DATA * sizeof(char));
   int line_no = 0;
+  int match_count = 0;
 
   while (fgets(current_line, MAX_DATA, file)) {
     line_no++;
     if (strstr(current_line, test)) {
-      print_match(line_no, file_name, current_line);
+      match_count++;
+      print_match(line_no, file_name, current_line, match_count);
     }
   }
 
   free(current_line);
+  fclose(file);
+
+  printf("\n");
 error:
+  printf("\n");
   return;
 }
 
