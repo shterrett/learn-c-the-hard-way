@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <wordexp.h>
 #include "dbg.h"
 
 #define MAX_DATA 512
@@ -44,20 +45,30 @@ error:
   return;
 }
 
-int main(int argc, char *argv[])
+void process_files(FILE *file_list, char *test)
 {
-  check(argc > 1, "Search string must be provided");
-
-  FILE *file_list = fopen("./.logfindc", "r");
-  char *test = argv[1];
+  wordexp_t paths;
 
   char *current_file = (char *)malloc(MAX_DATA * sizeof(char));
   while (fgets(current_file, MAX_DATA, file_list)) {
     strip_newline(current_file);
-    search_file(current_file, test);
+    wordexp(current_file, &paths, 0);
+    for (int i = 0; i < paths.we_wordc; i++) {
+      search_file(paths.we_wordv[i], test);
+    }
   }
-
   free(current_file);
+  wordfree(&paths);
+}
+
+int main(int argc, char *argv[])
+{
+  check(argc > 1, "Search string must be provided");
+  char *test = argv[1];
+  FILE *file_list = fopen("./.logfindc", "r");
+
+  process_files(file_list, test);
+
   fclose(file_list);
 
   return 0;
