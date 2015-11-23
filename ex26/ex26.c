@@ -67,7 +67,10 @@ void process_files(FILE *file_list, char *test, test_str cmp_fn)
 
 int main(int argc, char *argv[])
 {
-  FILE *file_list = fopen("./.logfindc", "r");
+  wordexp_t path_to_list;
+  wordexp("~/.logfindc", &path_to_list, 0);
+  FILE *file_list = fopen(path_to_list.we_wordv[0], "r");
+  check(file_list, "Must specify search paths in ~/.logfindc");
 
   int is_case_insensitive = 0;
   char *option_strings = "i";
@@ -96,8 +99,10 @@ int main(int argc, char *argv[])
   process_files(file_list, test, cmp_fn);
 
   fclose(file_list);
+  wordfree(&path_to_list);
 
   return 0;
 error:
+  wordfree(&path_to_list);
   return -1;
 }
