@@ -50,7 +50,7 @@ char *test_dlclose()
 
 char *test_fail()
 {
-  mu_assert(2 + 2 == 5, "Big Brother is watching");
+  mu_assert(2 + 2 == 5, "Big Brother is watching you");
   return NULL;
 }
 

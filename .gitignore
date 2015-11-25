@@ -3,8 +3,10 @@ bin
 **/bin
 **/build
 
-# Test logs
+# Test
 tests.log
+*_tests
+!*_tests.c
 
 # Object files
 *.o
