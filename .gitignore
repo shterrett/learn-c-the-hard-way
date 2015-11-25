@@ -1,5 +1,7 @@
 # Compiled Executables
 bin
+**/bin
+**/build
 
 # Object files
 *.o

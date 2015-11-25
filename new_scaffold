@@ -1,0 +1,22 @@
+#!/Users/stuart/.rbenv/shims/ruby
+require 'fileutils'
+
+exercise_number = ARGV.first
+unless exercise_number =~ /\d\d/
+  puts "invalid exercise number"
+  exit(1)
+end
+
+exercise_name = "ex#{exercise_number}"
+
+FileUtils.mkdir(exercise_name)
+["bin", "src", "tests"].each do |dir|
+  FileUtils.mkdir("#{exercise_name}/#{dir}")
+end
+
+FileUtils.cp("Makefile.template", "#{exercise_name}/Makefile")
+FileUtils.cp("runtests.sh", "#{exercise_name}/tests/runtests.sh")
+FileUtils.touch(["LICENSE", "README.md"].map { |f| "#{exercise_name}/#{f}" })
+
+puts "Exercise scaffold created"
+exit(0)
