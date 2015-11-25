@@ -3,6 +3,9 @@ bin
 **/bin
 **/build
 
+# Test logs
+tests.log
+
 # Object files
 *.o
 *.ko
