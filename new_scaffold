@@ -14,6 +14,7 @@ FileUtils.mkdir(exercise_name)
   FileUtils.mkdir("#{exercise_name}/#{dir}")
 end
 
+FileUtils.cp("dbg.h", "#{exercise_name}/src/dbg.h")
 FileUtils.cp("Makefile.template", "#{exercise_name}/Makefile")
 FileUtils.cp("runtests.sh", "#{exercise_name}/tests/runtests.sh")
 FileUtils.touch(["LICENSE", "README.md"].map { |f| "#{exercise_name}/#{f}" })
