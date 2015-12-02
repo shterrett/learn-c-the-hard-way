@@ -1,5 +1,5 @@
-#include <lcthw/list.h>
-#include <lcthw/dbg.h>
+#include "list.h"
+#include "dbg.h"
 
 List *List_create()
 {
@@ -14,7 +14,9 @@ void List_destroy(List * list)
     }
   }
 
-  free(list->last);
+  if (list->last) {
+    free(list->last);
+  }
   free(list);
 }
 
@@ -120,4 +122,66 @@ void *List_remove(List * list, ListNode * node)
 
 error:
   return NULL;
+}
+
+List *List_copy(List * list)
+{
+  List *new_list = List_create();
+  check_mem(new_list);
+
+  LIST_FOREACH(list, first, next, cur) {
+    List_push(new_list, cur->value);
+  }
+
+  return new_list;
+
+error:
+  if (new_list) {
+    List_clear_destroy(new_list);
+  }
+  return NULL;
+}
+
+List *List_split(List * list, ListNode *node)
+{
+  List *second_list = List_create();
+
+  second_list->first = node;
+  second_list->last = list->last;
+  if (node->prev) {
+    list->last = node->prev;
+    list->last->next = NULL;
+  } else if  (list->first == node) {
+    list->first = NULL;
+    list->last = NULL;
+  } else {
+    sentinel("Invalid list");
+  }
+
+  node->prev = NULL;
+
+  LIST_FOREACH(second_list, first, next, cur) {
+    list->count--;
+    second_list->count++;
+  }
+
+  return second_list;
+
+error:
+  if (second_list) {
+    List_clear_destroy(second_list);
+  }
+  return NULL;
+}
+
+void List_join(List * first_list, List * second_list)
+{
+  check(first_list->last, "First list does not have tail");
+  check(second_list->first, "Second list does not have head");
+  first_list->last->next = second_list->first;
+  second_list->first->prev = first_list->last;
+  first_list->last = second_list->last;
+
+error:
+  return;
 }
