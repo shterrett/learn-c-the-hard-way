@@ -45,7 +45,7 @@ char *run_sort_test(int (*func) (DArray *, DArray_compare), const char *name)
   mu_assert(!is_sorted(words), "Words should not start sorted");
 
   debug("--- Testing %s sorting algorithm", name);
-  int rc = func(words, (DArray_compare) testcmp);
+  int rc = func(words, (DArray_compare) strcmp);
   mu_assert(rc == 0, "sort failed");
   mu_assert(is_sorted(words), "Not sorted");
 
