@@ -69,6 +69,59 @@ char *test_mergesort()
   return run_sort_test(DArray_mergesort, "mergesort");
 }
 
+int intcmp(const void *a, const void *b)
+{
+  return ((int)a > (int)b) - ((int)b > (int)a);
+}
+
+char *test_find()
+{
+  DArray *array = DArray_create(0, 5);
+  char *words[] = { "hell",
+                    "hello",
+                    "july",
+                    "light",
+                    "terror"
+                  };
+  for(int i = 0; i < 5; i++) {
+    DArray_push(array, words[i]);
+  }
+
+  char *hell = "hell";
+  mu_assert(DArray_find(array, hell, (DArray_compare) strcmp) == 0,
+            "word not found"
+           );
+  char *light = "light";
+  mu_assert(DArray_find(array, light, (DArray_compare) strcmp) == 3,
+            "word not found"
+           );
+  char *nonexistent = "nonexistent";
+  mu_assert(DArray_find(array, nonexistent, (DArray_compare) strcmp) == -1,
+            "missing word found"
+           );
+
+  DArray_destroy(array);
+  array = DArray_create(0, 5);
+
+  for (int i = 0; i < 5; i++) {
+    int j = i * 3;
+    DArray_push(array, (void *)j);
+  }
+
+  int two = 2;
+  mu_assert(DArray_find(array, (void *)two, intcmp) == -1,
+            "missing number found"
+           );
+  int three = 3;
+  mu_assert(DArray_find(array, (void *)three, intcmp) == 1,
+            "number not found"
+           );
+
+  DArray_destroy(array);
+
+  return NULL;
+}
+
 char *all_tests()
 {
   mu_suite_start();
@@ -76,6 +129,7 @@ char *all_tests()
   mu_run_test(test_qsort);
   mu_run_test(test_heapsort);
   mu_run_test(test_mergesort);
+  mu_run_test(test_find);
 
   return NULL;
 }

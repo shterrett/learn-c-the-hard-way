@@ -49,10 +49,6 @@ void sift_down(DArray *array, int start, int end, DArray_compare cmp);
 int DArray_heapsort(DArray *array, DArray_compare cmp)
 {
   heapify(array, cmp);
-  debug("MAX HEAP:");
-  for (int i = 0; i < array->end; i++) {
-    debug("Array i: %s", DArray_get(array, i));
-  }
 
   int end = array->end - 1;
   while (end > 0) {
@@ -148,4 +144,29 @@ int DArray_mergesort(DArray *array, DArray_compare cmp)
     DArray_destroy(right);
   }
   return 0;
+}
+
+int find_with_bounds(DArray *array, int lb, int ub, void *target, DArray_compare cmp)
+{
+  int middle = lb + ((ub - lb) / 2);
+  int comparison = cmp(target, DArray_get(array, middle));
+
+  if ((ub - lb) == 0) {
+    if (comparison != 0) {
+      return -1;
+    }
+  }
+
+  if (comparison == 0) {
+    return middle;
+  } else if (comparison < 0) {
+    return find_with_bounds(array, lb, middle, target, cmp);
+  } else {
+    return find_with_bounds(array, middle + 1, ub, target, cmp);
+  }
+
+}
+int DArray_find(DArray *array, void *target, DArray_compare cmp)
+{
+  return find_with_bounds(array, 0, array->end, target, cmp);
 }
