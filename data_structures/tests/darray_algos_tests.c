@@ -71,7 +71,10 @@ char *test_mergesort()
 
 int intcmp(const void *a, const void *b)
 {
-  return ((int)a > (int)b) - ((int)b > (int)a);
+  int a_int = *(int *)a;
+  int b_int = *(int *)b;
+  debug("%d <=> %d", a_int, b_int);
+  return (a_int > b_int) - (b_int > a_int);
 }
 
 char *test_find()
@@ -103,17 +106,17 @@ char *test_find()
   DArray_destroy(array);
   array = DArray_create(0, 5);
 
+  int numbers[] = { 0, 3, 6, 9, 12 };
   for (int i = 0; i < 5; i++) {
-    int j = i * 3;
-    DArray_push(array, (void *)j);
+    DArray_push(array, (void *)(numbers + i));
   }
 
   int two = 2;
-  mu_assert(DArray_find(array, (void *)two, intcmp) == -1,
+  mu_assert(DArray_find(array, (void *)&two, intcmp) == -1,
             "missing number found"
            );
   int three = 3;
-  mu_assert(DArray_find(array, (void *)three, intcmp) == 1,
+  mu_assert(DArray_find(array, (void *)&three, intcmp) == 1,
             "number not found"
            );
 
