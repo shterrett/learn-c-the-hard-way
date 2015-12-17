@@ -89,17 +89,17 @@ error:
   return NULL;
 }
 
-static inline DArray *Hashmap_find_bucket(Hashmap *map, void *key, int create, uint32_t *hash_out)
+static inline List *Hashmap_find_bucket(Hashmap *map, void *key, int create, uint32_t *hash_out)
 {
   uint32_t hash = map->hash(key);
   int bucket_n = hash % DEFAULT_NUMBER_OF_BUCKETS;
   check(bucket_n >= 0, "Invalid bucket found: %d", bucket_n);
   *hash_out = hash;
 
-  DArray *bucket = DArray_get(map->buckets, bucket_n);
+  List *bucket = DArray_get(map->buckets, bucket_n);
 
   if (!bucket && create) {
-    bucket = DArray_create(sizeof(void *), DEFAULT_NUMBER_OF_BUCKETS);
+    bucket = List_create();
     check_mem(bucket);
     DArray_set(map->buckets, bucket_n, bucket);
   }
@@ -113,13 +113,13 @@ error:
 int Hashmap_set(Hashmap *map, void *key, void *data)
 {
   uint32_t hash = 0;
-  DArray *bucket = Hashmap_find_bucket(map, key, 1, &hash);
+  List *bucket = Hashmap_find_bucket(map, key, 1, &hash);
   check(bucket, "Error can't create bucket.");
 
   HashmapNode *node = Hashmap_node_create(hash, key, data);
   check_mem(node);
 
-  DArray_push(bucket, node);
+  List_push(bucket, node);
 
   return 0;
 
@@ -127,30 +127,40 @@ error:
   return -1;
 }
 
-static inline int Hashmap_get_node(Hashmap *map, uint32_t hash, DArray *bucket, void *key)
+static inline ListNode *Hashmap_bucket_list_node(Hashmap *map,
+                                                 uint32_t hash,
+                                                 List *bucket,
+                                                 void *key
+                                                )
 {
   int i = 0;
-  for (i = 0; i < DArray_end(bucket); i++) {
+  LIST_FOREACH(bucket, first, next, cur) {
     debug("TRY: %d", i);
-    HashmapNode *node = DArray_get(bucket, i);
+    HashmapNode *node = cur->value;
     if (node->hash == hash && map->compare(node->key, key) == 0) {
-      return i;
+      return cur;
     }
   }
+  return NULL;
+}
 
-  return -1;
+static inline HashmapNode *Hashmap_get_node(Hashmap *map, uint32_t hash, List *bucket, void *key)
+{
+  ListNode *list_node = Hashmap_bucket_list_node(map, hash, bucket, key);
+  if (list_node) {
+    return list_node->value;
+  } else {
+    return NULL;
+  }
 }
 
 void *Hashmap_get(Hashmap *map, void *key)
 {
   uint32_t hash = 0;
-  DArray *bucket = Hashmap_find_bucket(map, key, 0, &hash);
+  List *bucket = Hashmap_find_bucket(map, key, 0, &hash);
   if (!bucket) { return NULL; }
 
-  int i = Hashmap_get_node(map, hash, bucket, key);
-  if (i == -1) { return NULL; }
-
-  HashmapNode *node = DArray_get(bucket, i);
+  HashmapNode *node = Hashmap_get_node(map, hash, bucket, key);
   check(node != NULL, "Failed to get node from bucket when it should exist");
 
   return node->data;
@@ -162,14 +172,13 @@ error:
 int Hashmap_traverse(Hashmap *map, Hashmap_traverse_cb traverse_cb)
 {
   int i = 0;
-  int j = 0;
   int rc = 0;
 
   for (i = 0; i < DArray_count(map->buckets); i++) {
-    DArray *bucket = DArray_get(map->buckets, i);
+    List *bucket = DArray_get(map->buckets, i);
     if (bucket) {
-      for (j = 0; j < DArray_count(bucket); j++) {
-        HashmapNode *node = DArray_get(bucket, j);
+      LIST_FOREACH(bucket, first, next, cur) {
+        HashmapNode *node = cur->value;
         rc = traverse_cb(node);
         if (rc != 0) {
           return rc;
@@ -184,25 +193,19 @@ int Hashmap_traverse(Hashmap *map, Hashmap_traverse_cb traverse_cb)
 void *Hashmap_delete(Hashmap *map, void *key)
 {
   uint32_t hash = 0;
-  DArray *bucket = Hashmap_find_bucket(map,key, 0, &hash);
+  List *bucket = Hashmap_find_bucket(map,key, 0, &hash);
   if (!bucket) {
     return NULL;
   }
+  ListNode *list_node = Hashmap_bucket_list_node(map, hash, bucket, key);
 
-  int i = Hashmap_get_node(map, hash, bucket, key);
-  if (i == -1) {
+  if (list_node) {
+    HashmapNode *node = List_remove(bucket, list_node);
+    void *data = node->data;
+    free(node);
+
+    return data;
+  } else {
     return NULL;
   }
-
-  HashmapNode *node = DArray_get(bucket, i);
-  void *data = node->data;
-  free(node);
-
-  HashmapNode *ending = DArray_pop(bucket);
-
-  if (ending != node) {
-    DArray_set(bucket, i, ending);
-  }
-
-  return data;
 }
