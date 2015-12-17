@@ -11,6 +11,7 @@ struct tagbstring test3 = bsStatic("test data 3");
 struct tagbstring expect1 = bsStatic("THE VALUE 1");
 struct tagbstring expect2 = bsStatic("THE VALUE 2");
 struct tagbstring expect3 = bsStatic("THE VALUE 3");
+struct tagbstring expect4 = bsStatic("THE VALUE 4");
 
 static int traverse_good_cb(HashmapNode *node)
 {
@@ -63,6 +64,11 @@ char *test_get_set()
   result = Hashmap_get(map, &test3);
   mu_assert(result == &expect3, "Wrong value for test3");
 
+  rc = Hashmap_set(map, &test2, &expect4);
+  mu_assert(rc == 0, "Failed to overwrite test3");
+  result = Hashmap_get(map, &test2);
+  mu_assert(result == &expect4, "Wrong value for overwritten test3");
+
   return NULL;
 }
 
@@ -89,7 +95,7 @@ char *test_delete()
 
   deleted = (bstring) Hashmap_delete(map, &test2);
   mu_assert(deleted != NULL, "Got NULL on delete");
-  mu_assert(deleted == &expect2, "Should get test2");
+  mu_assert(deleted == &expect4, "Should get test2");
   mu_assert(result == NULL, "Should delete");
 
   deleted = (bstring) Hashmap_delete(map, &test3);

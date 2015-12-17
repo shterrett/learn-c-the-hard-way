@@ -110,16 +110,21 @@ error:
   return NULL;
 }
 
+static inline HashmapNode *Hashmap_get_node(Hashmap *map, uint32_t hash, List *bucket, void *key);
 int Hashmap_set(Hashmap *map, void *key, void *data)
 {
   uint32_t hash = 0;
   List *bucket = Hashmap_find_bucket(map, key, 1, &hash);
   check(bucket, "Error can't create bucket.");
 
-  HashmapNode *node = Hashmap_node_create(hash, key, data);
-  check_mem(node);
-
-  List_push(bucket, node);
+  HashmapNode *node = Hashmap_get_node(map, hash, bucket, key);
+  if (node) {
+    node->data = data;
+  } else {
+    node = Hashmap_node_create(hash, key, data);
+    check_mem(node);
+    List_push(bucket, node);
+  }
 
   return 0;
 
