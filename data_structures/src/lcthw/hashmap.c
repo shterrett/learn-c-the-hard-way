@@ -41,6 +41,7 @@ Hashmap *Hashmap_create(Hashmap_compare compare, Hashmap_hash hash)
   map->hash = hash == NULL ? default_hash : hash;
   map->buckets = DArray_create(sizeof(DArray *), DEFAULT_NUMBER_OF_BUCKETS);
   map->buckets->end = map->buckets->max;
+  map->count = 0;
   check_mem(map->buckets);
 
   return map;
@@ -92,7 +93,7 @@ error:
 static inline List *Hashmap_find_bucket(Hashmap *map, void *key, int create, uint32_t *hash_out)
 {
   uint32_t hash = map->hash(key);
-  int bucket_n = hash % DEFAULT_NUMBER_OF_BUCKETS;
+  int bucket_n = hash % DArray_count(map->buckets);
   check(bucket_n >= 0, "Invalid bucket found: %d", bucket_n);
   *hash_out = hash;
 
@@ -111,6 +112,7 @@ error:
 }
 
 static inline HashmapNode *Hashmap_get_node(Hashmap *map, uint32_t hash, List *bucket, void *key);
+void Hashmap_check_size_and_resize(Hashmap *map);
 int Hashmap_set(Hashmap *map, void *key, void *data)
 {
   uint32_t hash = 0;
@@ -124,6 +126,8 @@ int Hashmap_set(Hashmap *map, void *key, void *data)
     node = Hashmap_node_create(hash, key, data);
     check_mem(node);
     List_push(bucket, node);
+    map->count++;
+    Hashmap_check_size_and_resize(map);
   }
 
   return 0;
@@ -138,9 +142,7 @@ static inline ListNode *Hashmap_bucket_list_node(Hashmap *map,
                                                  void *key
                                                 )
 {
-  int i = 0;
   LIST_FOREACH(bucket, first, next, cur) {
-    debug("TRY: %d", i);
     HashmapNode *node = cur->value;
     if (node->hash == hash && map->compare(node->key, key) == 0) {
       return cur;
@@ -208,9 +210,45 @@ void *Hashmap_delete(Hashmap *map, void *key)
     HashmapNode *node = List_remove(bucket, list_node);
     void *data = node->data;
     free(node);
-
+    map->count--;
+    Hashmap_check_size_and_resize(map);
     return data;
   } else {
     return NULL;
+  }
+}
+
+int Hashmap_resize(Hashmap *map, int new_size)
+{
+  DArray *new_buckets = DArray_create(sizeof(DArray *), new_size);
+  new_buckets->end = new_buckets->max;
+  DArray *old_buckets = map->buckets;
+  map->buckets = new_buckets;
+
+  for (int i = 0; i < DArray_count(old_buckets); i++) {
+    List *bucket = DArray_get(old_buckets, i);
+    if (bucket) {
+      LIST_FOREACH(bucket, first, next, cur) {
+        HashmapNode *node = cur->value;
+        map->count--;
+        Hashmap_set(map, node->key, node->data);
+      }
+    }
+  }
+  DArray_clear_destroy(old_buckets);
+
+  return new_size;
+}
+
+void Hashmap_check_size_and_resize(Hashmap *map)
+{
+  int original_size = DArray_count(map->buckets);
+  int rc = 0;
+  if (map->count > original_size / 2) {
+    rc = Hashmap_resize(map, original_size * 2);
+  } else if (map->count < original_size / 4 &&
+             map->count > DEFAULT_NUMBER_OF_BUCKETS / 4
+            ) {
+    rc = Hashmap_resize(map, original_size / 2);
   }
 }

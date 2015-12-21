@@ -53,21 +53,25 @@ char *test_get_set()
   mu_assert(rc == 0, "Failed to set &test1");
   bstring result = Hashmap_get(map, &test1);
   mu_assert(result == &expect1, "Wrong value for test1");
+  mu_assert(Hashmap_count(map) == 1, "Not counting");
 
   rc = Hashmap_set(map, &test2, &expect2);
   mu_assert(rc == 0, "Failed to set test2");
   result = Hashmap_get(map, &test2);
   mu_assert(result == &expect2, "Wrong value for test2");
+  mu_assert(Hashmap_count(map) == 2, "Not counting");
 
   rc = Hashmap_set(map, &test3, &expect3);
   mu_assert(rc == 0, "Failed to set test3");
   result = Hashmap_get(map, &test3);
   mu_assert(result == &expect3, "Wrong value for test3");
+  mu_assert(Hashmap_count(map) == 3, "Not counting");
 
   rc = Hashmap_set(map, &test2, &expect4);
   mu_assert(rc == 0, "Failed to overwrite test3");
   result = Hashmap_get(map, &test2);
   mu_assert(result == &expect4, "Wrong value for overwritten test3");
+  mu_assert(Hashmap_count(map) == 3, "Not counting");
 
   return NULL;
 }
@@ -92,17 +96,20 @@ char *test_delete()
   mu_assert(deleted == &expect1, "Should get test1");
   bstring result = Hashmap_get(map, &test1);
   mu_assert(result == NULL, "Should delete");
+  mu_assert(Hashmap_count(map) == 2, "Not counting");
 
   deleted = (bstring) Hashmap_delete(map, &test2);
   mu_assert(deleted != NULL, "Got NULL on delete");
   mu_assert(deleted == &expect4, "Should get test2");
   mu_assert(result == NULL, "Should delete");
+  mu_assert(Hashmap_count(map) == 1, "Not counting");
 
   deleted = (bstring) Hashmap_delete(map, &test3);
   mu_assert(deleted != NULL, "Got NULL on delete");
   mu_assert(deleted == &expect3, "Should get test3");
   result = Hashmap_get(map, &test3);
   mu_assert(result == NULL, "Should delete");
+  mu_assert(Hashmap_count(map) == 0, "Not counting");
 
   return NULL;
 }
