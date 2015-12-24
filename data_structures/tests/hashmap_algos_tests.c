@@ -64,10 +64,24 @@ char *test_bob_jenkins()
   return NULL;
 }
 
+char *test_bad()
+{
+  uint32_t hash = Hashmap_bad_hash(&test1);
+  mu_assert(hash != 0, "bad hash");
+
+  hash = Hashmap_bad_hash(&test2);
+  mu_assert(hash != 0, "bad hash");
+
+  hash = Hashmap_bad_hash(&test3);
+  mu_assert(hash != 0, "bad hash");
+
+  return NULL;
+}
+
 #define BUCKETS 100
 #define BUFFER_LEN 20
 #define NUM_KEYS BUCKETS * 1000
-enum { ALGO_FNV1A, ALGO_ADLER32, ALGO_DJB, ALGO_BOB_JENKINS };
+enum { ALGO_FNV1A, ALGO_ADLER32, ALGO_DJB, ALGO_BOB_JENKINS, ALGO_BAD };
 
 int gen_keys(DArray *keys, int num_keys)
 {
@@ -121,7 +135,7 @@ void fill_distribution(int *stats, DArray *keys, Hashmap_hash hash_func)
 char *test_distribution()
 {
   int i = 0;
-  int stats[4][BUCKETS] = { { 0 } };
+  int stats[5][BUCKETS] = { { 0 } };
   DArray *keys = DArray_create(0, NUM_KEYS);
 
   mu_assert(gen_keys(keys, NUM_KEYS) == 0,
@@ -132,16 +146,18 @@ char *test_distribution()
   fill_distribution(stats[ALGO_ADLER32], keys, Hashmap_adler32_hash);
   fill_distribution(stats[ALGO_DJB], keys, Hashmap_djb_hash);
   fill_distribution(stats[ALGO_BOB_JENKINS], keys, Hashmap_bob_jenkins_hash);
+  fill_distribution(stats[ALGO_BAD], keys, Hashmap_bad_hash);
 
-  fprintf(stderr, "FNV\tA32\tDJB\tBobJenkins\n");
+  fprintf(stderr, "FNV\tA32\tDJB\tBobJenkins\tbad\n");
 
   for (i = 0; i < BUCKETS; i++) {
     fprintf(stderr,
-            "%d\t%d\t%d\t%d\n",
+            "%d\t%d\t%d\t%d\t\t%d\n",
             stats[ALGO_FNV1A][i],
             stats[ALGO_ADLER32][i],
             stats[ALGO_DJB][i],
-            stats[ALGO_BOB_JENKINS][i]
+            stats[ALGO_BOB_JENKINS][i],
+            stats[ALGO_BAD][i]
            );
   }
 

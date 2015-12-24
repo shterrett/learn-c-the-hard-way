@@ -67,3 +67,14 @@ uint32_t Hashmap_bob_jenkins_hash(void *data)
 
   return hash;
 }
+
+uint32_t Hashmap_bad_hash(void *data)
+{
+  bstring s = (bstring) data;
+  uint32_t hash = 0;
+  for (int i = 0; i < blength(s); i++) {
+    hash = ((hash << 4) + bchare(s, i, 0)) % blength(s);
+  }
+
+  return hash;
+}
