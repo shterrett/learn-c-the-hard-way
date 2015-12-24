@@ -3,33 +3,11 @@
 #include "hashmap.h"
 #include "dbg.h"
 #include "bstrlib.h"
+#include "hashmap_algos.h"
 
 static int default_compare(void *a, void *b)
 {
   return bstrcmp((bstring) a, (bstring) b);
-}
-
-/**
- * Bob Jenkin's hash algorithm
- */
-static uint32_t default_hash(void *a)
-{
-  size_t len = blength((bstring) a);
-  char *key = bdata((bstring) a);
-  uint32_t hash = 0;
-  uint32_t i = 0;
-
-  for (hash = i = 0; i < len; ++i) {
-    hash += key[i];
-    hash += (hash << 10);
-    hash ^= (hash << 6);
-  }
-
-  hash += (hash << 3);
-  hash ^= (hash >> 11);
-  hash += (hash << 15);
-
-  return hash;
 }
 
 Hashmap *Hashmap_create(Hashmap_compare compare, Hashmap_hash hash)
@@ -38,7 +16,7 @@ Hashmap *Hashmap_create(Hashmap_compare compare, Hashmap_hash hash)
   check_mem(map);
 
   map->compare = compare == NULL ? default_compare : compare;
-  map->hash = hash == NULL ? default_hash : hash;
+  map->hash = hash == NULL ? Hashmap_bob_jenkins_hash : hash;
   map->buckets = DArray_create(sizeof(DArray *), DEFAULT_NUMBER_OF_BUCKETS);
   map->buckets->end = map->buckets->max;
   map->count = 0;
