@@ -2,6 +2,7 @@
 bin
 **/bin
 **/build
+!bin/*.c
 
 # Test
 tests.log

@@ -7,12 +7,14 @@ OBJECTS=$(patsubst %.c,%.o,$(SOURCES))
 
 TEST_SRC=$(wildcard tests/*_tests.c)
 TESTS=$(patsubst %.c,%,$(TEST_SRC))
+PROGRAMS_SRC=$(wildcard bin/*.c)
+PROGRAMS=$(patsubst %.c,%,$(PROGRAMS_SRC))
 
 TARGET=build/liblcthw.a
 SO_TARGET=$(patsubst %.a,%.so,$(TARGET))
 
 # Target build
-all: $(TARGET) $(SO_TARGET) tests
+all: $(TARGET) $(SO_TARGET) tests $(PROGRAMS)
 
 dev: CFLAGS=-g -WALL -Isrc - WALL -Wextra $(OPTFLAGS)
 dev: all
@@ -37,7 +39,7 @@ tests: $(TESTS)
 
 # Cleanup
 clean:
-	rm -rf build $(OBJECTS) $(TESTS)
+	rm -rf build $(OBJECTS) $(TESTS) $(PROGRAMS)
 	rm -f tests/tests.log
 	find . -name "*.gc*" -exec rm {} \;
 	rm -rf `find . -name "*.dSYM" -print`
@@ -53,3 +55,4 @@ check:
 	@egrep '[^_.>a-zA-Z0-9]Istr(n?cpy|n?cat|xfrm|n?dup|str|pbrk|tok|_)\
 						|stpn?cpy|a?sn?printf|byte_)' $(SOURCES) || true
 
+$(PROGRAMS): CFLAGS += $(TARGET)
