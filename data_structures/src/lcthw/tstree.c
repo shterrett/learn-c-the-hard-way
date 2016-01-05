@@ -101,6 +101,61 @@ void *TSTree_search_prefix(TSTree *root, const char *key, size_t len)
   return node ? node -> value : NULL;
 }
 
+static void _TSTree_collect_sub_nodes(TSTree *node, DArray *matches, char *cur_match, size_t len)
+{
+  if (!node) {
+    return;
+  }
+
+  len += 1;
+  char *match = malloc(sizeof(char) * len);
+  sprintf(match, "%s%c", cur_match, node->splitchar);
+
+  if (node->low) {
+    _TSTree_collect_sub_nodes(node->low, matches, match, len);
+  }
+
+  if (node->equal) {
+    _TSTree_collect_sub_nodes(node->equal, matches, match, len);
+  }
+
+  if (node->high) {
+    _TSTree_collect_sub_nodes(node->high, matches, match, len);
+  }
+
+  if (node->value) {
+    DArray_push(matches, match);
+  } else {
+    free(match);
+  }
+}
+
+DArray *TSTree_collect(TSTree *root, const char *prefix, size_t len)
+{
+  DArray *matches = DArray_create(sizeof(char *), 100);
+  TSTree *node = root;
+  size_t i = 0;
+
+  while (i < len && node) {
+    if (prefix[i] < node->splitchar) {
+      node = node->low;
+    } else if (prefix[i] > node->splitchar) {
+      node = node->high;
+    } else {
+      assert(prefix[i] == node->splitchar && "Prefix should == splitchar");
+      i++;
+      if (i < len) {
+        node = node->equal;
+      }
+    }
+  }
+  // node is the node that matches the prefix; all nodes in the tree will match
+  char *partial_match = malloc(sizeof(char) * (len - 1));
+  memcpy(partial_match, prefix, (len - 1));
+  _TSTree_collect_sub_nodes(node, matches, partial_match, len);
+  return matches;
+}
+
 void TSTree_traverse(TSTree *node, TSTree_traverse_cb cb, void *data)
 {
   if (!node) {

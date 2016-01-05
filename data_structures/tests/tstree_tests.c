@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <lcthw/bstrlib.h>
+#include <lcthw/darray.h>
 
 TSTree *node = NULL;
 char *valueA = "VALUEA";
@@ -48,11 +49,9 @@ char *test_search_exact()
 char *test_search_prefix()
 {
   void *res = TSTree_search_prefix(node, bdata(&test1), blength(&test1));
-  debug("result: %p, expected %p", res, valueA);
   mu_assert(res == valueA, "Got wrong valueA by prefix");
 
   res = TSTree_search_prefix(node, bdata(&test1), 1);
-  debug("result: %p, expected: %p", res, valueA);
   mu_assert(res == value4, "Got wrong value4 for prefix of 1");
 
   res = TSTree_search_prefix(node, "TE", strlen("TE"));
@@ -60,6 +59,19 @@ char *test_search_prefix()
 
   res = TSTree_search_prefix(node, "TE--", strlen("TE--"));
   mu_assert(res != NULL, "Should find for partial prefix");
+
+  return NULL;
+}
+
+char *test_collect()
+{
+  DArray *matches = TSTree_collect(node, "TES", 3);
+  mu_assert(DArray_count(matches) == 2, "Did not return the right number of matches");
+  int match_forwards = (strncmp("TEST", DArray_get(matches, 0), 4) == 0 &&
+                       strncmp("TEST2", DArray_get(matches, 1), 5) == 0);
+  int match_backwards = (strncmp("TEST2", DArray_get(matches, 0), 5) == 0 &&
+                        strncmp("TEST", DArray_get(matches, 1), 4) == 0);
+  mu_assert(match_forwards || match_backwards, "matches not found");
 
   return NULL;
 }
@@ -75,7 +87,6 @@ char *test_traverse()
 {
   traverse_count = 0;
   TSTree_traverse(node, TSTree_traverse_test_cb, valueA);
-  debug("traverse count is: %d", traverse_count);
   mu_assert(traverse_count == 4, "Didn't find 4 keys");
 
   return NULL;
@@ -94,6 +105,7 @@ char *all_tests()
   mu_run_test(test_insert);
   mu_run_test(test_search_exact);
   mu_run_test(test_search_prefix);
+  mu_run_test(test_collect);
   mu_run_test(test_traverse);
   mu_run_test(test_destroy);
 
