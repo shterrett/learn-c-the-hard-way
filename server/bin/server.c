@@ -14,10 +14,7 @@ int main(int argc, char *argv[])
   char buffer[256];
   struct sockaddr_in serv_addr, cli_addr;
   int n;
-  if (argc < 2) {
-    fprintf(stderr,"ERROR, no port provided\n");
-    exit(1);
-  }
+  check(argc == 2, "USAGE: server <port>")
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   check(sockfd >= 0, "error opening socket");
   bzero((char *) &serv_addr, sizeof(serv_addr));
@@ -28,18 +25,20 @@ int main(int argc, char *argv[])
   check(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) >= 0,
         "ERROR on binding"
        );
-  listen(sockfd,5);
-  clilen = sizeof(cli_addr);
-  newsockfd = accept(sockfd,
-      (struct sockaddr *) &cli_addr,
-      &clilen);
-  check(newsockfd >= 0, "error on accept");
-  bzero(buffer,256);
-  n = read(newsockfd,buffer,255);
-  check(n >= 0, "error reading from socket");
-  log_info("Here is the message: %s",buffer);
-  n = write(newsockfd,"I got your message",18);
-  check(n >= 0, "Error writing to socket");
+  while (1) {
+    listen(sockfd,5);
+    clilen = sizeof(cli_addr);
+    newsockfd = accept(sockfd,
+        (struct sockaddr *) &cli_addr,
+        &clilen);
+    check(newsockfd >= 0, "error on accept");
+    bzero(buffer,256);
+    n = read(newsockfd,buffer,255);
+    check(n >= 0, "error reading from socket");
+    log_info("received: %s",buffer);
+    n = write(newsockfd, buffer, strlen(buffer));
+    check(n >= 0, "Error writing to socket");
+  }
   close(newsockfd);
   close(sockfd);
   return 0;
